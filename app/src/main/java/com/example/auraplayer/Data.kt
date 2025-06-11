@@ -7,24 +7,32 @@ data class Data(
 )
 
 val chipsDataList = listOf(
+    Data("All"),
     Data("Trending right now"),
     Data("Rock"),
     Data("Pop"),
     Data("Hip Hop"),
     Data("Indie"),
-    Data("Electronic")
+    Data("Electronic"),
+    Data("Jazz")
 )
 
 data class musicData(
     val musicName: String,
     val artistName: String,
-    val image: Int
+    val image: Int,
+    val category: String,
+    val songResId: Int
 )
 val musicDataList = listOf(
-    musicData("Song Name 1", "Artist Name 1", R.drawable.trending1),
-    musicData("Song Name 2", "Artist Name 2", R.drawable.trending2),
-    musicData("Song Name 3", "Artist Name 3", R.drawable.trending3),
-    musicData("Song Name 4", "Artist Name 4", R.drawable.trending4),
-    musicData("Song Name 5", "Artist Name 5", R.drawable.trending5),
-    musicData("Song Name 6", "Artist Name 6", R.drawable.trending1)
+    musicData("Shape of You", "Ed Sheeran", R.drawable.trending1, "Trending right now", R.raw.shape_of_you),
+    musicData("Bohemian Rhapsody", "Queen", R.drawable.trending2, "Rock", R.raw.bohemian_rhapsody),
+    musicData("Lose Yourself", "Eminem", R.drawable.trending3, "Hip-Hop", R.raw.lose_yourself),
+    musicData("Take Five", "Dave Brubeck", R.drawable.trending4, "Jazz", R.raw.take_five),
+    musicData("Blinding Lights", "The Weeknd", R.drawable.trending5, "Trending right now", R.raw.blinding_lights),
+    musicData("Hotel California", "Eagles", R.drawable.trending3, "Rock", R.raw.hotel_california),
+    musicData("Perfect", "Ed Sheeran", R.drawable.trending1, "Trending right now", R.raw.perfect),
+    musicData("Imagine", "John Lennon", R.drawable.trending2, "Rock", R.raw.imagine),
+    musicData("Smooth", "Santana", R.drawable.trending4, "Pop", R.raw.smooth),
+    musicData("Hotel California", "Eagles", R.drawable.trending5, "Rock", R.raw.hotel_california)
 )

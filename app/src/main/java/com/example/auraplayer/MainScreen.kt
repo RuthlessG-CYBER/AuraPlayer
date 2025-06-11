@@ -1,5 +1,7 @@
 package com.example.auraplayer
 
+import android.content.Context
+import android.media.MediaPlayer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -40,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,7 +57,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MainScreenUI(){
+fun MainScreenUI(context : Context){
+    var currentPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var currentlyPlayingId by remember { mutableStateOf<Int?>(null) }
+
+
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPlayer?.release()
+        }
+    }
+
+    fun playMusic(resId: Int) {
+        if (currentlyPlayingId == resId && currentPlayer?.isPlaying == true) {
+            // Pause the current song
+            currentPlayer?.pause()
+        } else {
+            // Release any existing player
+            currentPlayer?.release()
+            currentPlayer = MediaPlayer.create(context, resId)
+            currentPlayer?.start()
+            currentlyPlayingId = resId
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()
         .background(
             color = Color(0xFF5c5f5c).copy(alpha = 1f)
@@ -121,14 +148,16 @@ fun MainScreenUI(){
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ){
                 Spacer(modifier = Modifier.width(10.dp))
-                repeat(5){
+                musicDataList
+                    .filter { it.category == "Trending right now" }
+                    .forEach { item ->
                     Card(modifier = Modifier.size(250.dp, 180.dp),
                         shape = RoundedCornerShape(30.dp),
                     ){
                         Box(modifier = Modifier.fillMaxSize()
                         ){
                             Image(
-                                painter = painterResource(id = R.drawable.trending1),
+                                painter = painterResource(id = item.image),
                                 contentDescription = "Image",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -158,25 +187,29 @@ fun MainScreenUI(){
                                     Row(modifier = Modifier.fillMaxSize()){
                                         Column(modifier = Modifier.align(Alignment.CenterVertically)){
                                             Text(
-                                                text = "Song Name",
+                                                text = item.musicName,
                                                 color = Color.White,
                                                 modifier = Modifier.padding(start = 10.dp)
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = "Artist Name",
+                                                text = item.artistName,
                                                 color = Color.LightGray,
                                                 modifier = Modifier.padding(start = 10.dp)
                                             )
                                         }
                                         Spacer(modifier = Modifier.weight(1f))
-                                        IconButton(onClick = {},
+                                        IconButton(onClick = { playMusic(item.songResId) },
                                             modifier = Modifier.align(Alignment.CenterVertically),
                                             colors = IconButtonDefaults.iconButtonColors(
                                                 containerColor = Color.White
                                             )) {
                                             Icon(
-                                                Icons.Default.PlayArrow, contentDescription = "Play",
+                                                imageVector = if (currentlyPlayingId == item.songResId && currentPlayer?.isPlaying == true)
+                                                    Icons.Default.Pause
+                                                else
+                                                    Icons.Default.PlayArrow,
+                                                contentDescription = "Play/Pause",
                                                 tint = Color.Black
                                             )
                                         }
@@ -191,8 +224,17 @@ fun MainScreenUI(){
             Spacer(modifier = Modifier.height(20.dp))
 
             // Categories Chips
-            var clicked by remember { mutableStateOf(-1) }
+            var clicked by remember { mutableStateOf(0) }
 
+            val filteredMusicList = if (chipsDataList[clicked].text == "All") {
+            musicDataList // show all data
+            } else {
+            val selectedCategory = chipsDataList[clicked].text
+            musicDataList.filter { it.category == selectedCategory }
+            }
+
+
+            // CHIP ROW
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
@@ -216,25 +258,36 @@ fun MainScreenUI(){
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
 
-            // Music according to chip
-            Column(modifier = Modifier.fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp)
-                .verticalScroll(rememberScrollState()),
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Filtered Music List
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 20.dp, end = 20.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(5.dp)
-                ){
-                musicDataList.forEach {
-                    Card(onClick = {},
-                        modifier = Modifier.height(80.dp).fillMaxWidth(),
+            ) {
+                filteredMusicList.forEach {
+                    Card(
+                        modifier = Modifier
+                            .height(80.dp)
+                            .fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = Color.Transparent
                         )
-                        ){
-                        Row(modifier = Modifier.fillMaxSize()
-                            .padding(start = 10.dp, end = 10.dp)
-                        ){
-                            Card(modifier = Modifier.size(70.dp).align(Alignment.CenterVertically)){
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = 10.dp, end = 10.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .align(Alignment.CenterVertically)
+                            ) {
                                 Image(
                                     painter = painterResource(id = it.image),
                                     contentDescription = "Image",
@@ -242,83 +295,106 @@ fun MainScreenUI(){
                                     contentScale = ContentScale.Crop
                                 )
                             }
+
                             Spacer(modifier = Modifier.width(20.dp))
-                            Column(modifier = Modifier.align(Alignment.CenterVertically)){
-                                Text(text = it.musicName,
+
+                            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+                                Text(
+                                    text = it.musicName,
                                     color = Color.White,
-                                    fontSize = 18.sp)
+                                    fontSize = 16.sp
+                                )
                                 Spacer(modifier = Modifier.height(5.dp))
-                                Text(text = it.artistName,
+                                Text(
+                                    text = it.artistName,
                                     color = Color.White,
-                                    fontSize = 15.sp
-                                    )
+                                    fontSize = 14.sp
+                                )
                             }
+
                             Spacer(modifier = Modifier.weight(1f))
-                            Icon(
-                                Icons.Default.FavoriteBorder, contentDescription = "Like",
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
+
+                            IconButton(
+                                onClick = { playMusic(it.songResId) },
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = Color.White
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = if (currentlyPlayingId == it.songResId && currentPlayer?.isPlaying == true)
+                                        Icons.Default.Pause
+                                    else
+                                        Icons.Default.PlayArrow,
+                                    contentDescription = "Play/Pause",
+                                    tint = Color.Black
+                                )
+                            }
                         }
                     }
                 }
-            }
-        }
-        var clicked by remember { mutableStateOf(-1) }
 
-        ElevatedCard(
-            modifier = Modifier
-                .height(100.dp)
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp, bottom = 20.dp)
-                .align(Alignment.BottomCenter),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.9f)),
-            shape = RoundedCornerShape(30.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 40.dp, end = 40.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Icon(
-                    Icons.Default.Home,
-                    contentDescription = "Home",
-                    tint = if (clicked == 0) Color.Gray else Color.White,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(30.dp)
-                        .clickable { clicked = 0 }
-                )
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = if (clicked == 1) Color.Gray else Color.White,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(30.dp)
-                        .clickable { clicked = 1 }
-                )
-                Icon(
-                    Icons.Default.MusicNote,
-                    contentDescription = "Music",
-                    tint = if (clicked == 2) Color.Gray else Color.White,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(30.dp)
-                        .clickable { clicked = 2 }
-                )
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = "Profile",
-                    tint = if (clicked == 3) Color.Gray else Color.White,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(30.dp)
-                        .clickable { clicked = 3 }
-                )
+                Spacer(modifier = Modifier.height(100.dp))
             }
+
         }
 
+        // For Floating bottom bar
+//        var clicked by remember { mutableStateOf(0) }
+//
+//        ElevatedCard(
+//            modifier = Modifier
+//                .height(100.dp)
+//                .fillMaxWidth()
+//                .padding(start = 10.dp, end = 10.dp, bottom = 20.dp)
+//                .align(Alignment.BottomCenter),
+//            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+//            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.9f)),
+//            shape = RoundedCornerShape(30.dp)
+//        ) {
+//            Row(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(start = 40.dp, end = 40.dp),
+//                horizontalArrangement = Arrangement.SpaceBetween
+//            ) {
+//                Icon(
+//                    Icons.Default.Home,
+//                    contentDescription = "Home",
+//                    tint = if (clicked == 0) Color.Gray else Color.White,
+//                    modifier = Modifier
+//                        .align(Alignment.CenterVertically)
+//                        .size(30.dp)
+//                        .clickable { clicked = 0 }
+//                )
+//                Icon(
+//                    Icons.Default.Search,
+//                    contentDescription = "Search",
+//                    tint = if (clicked == 1) Color.Gray else Color.White,
+//                    modifier = Modifier
+//                        .align(Alignment.CenterVertically)
+//                        .size(30.dp)
+//                        .clickable { clicked = 1 }
+//                )
+//                Icon(
+//                    Icons.Default.MusicNote,
+//                    contentDescription = "Music",
+//                    tint = if (clicked == 2) Color.Gray else Color.White,
+//                    modifier = Modifier
+//                        .align(Alignment.CenterVertically)
+//                        .size(30.dp)
+//                        .clickable { clicked = 2 }
+//                )
+//                Icon(
+//                    Icons.Default.Person,
+//                    contentDescription = "Profile",
+//                    tint = if (clicked == 3) Color.Gray else Color.White,
+//                    modifier = Modifier
+//                        .align(Alignment.CenterVertically)
+//                        .size(30.dp)
+//                        .clickable { clicked = 3 }
+//                )
+//            }
+//        }
     }
 }
